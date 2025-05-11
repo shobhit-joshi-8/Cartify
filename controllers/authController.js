@@ -1,7 +1,8 @@
-const { hashPassword } = require("../helpers/authHelper");
+const { hashPassword, comparePassword } = require("../helpers/authHelper");
 const userModels = require("../models/userModels");
+const jsonWebToken = require("jsonwebtoken");
 
-
+//REGISTER CONTROLLER
 registerController = async (req, res) => {
     try {
         const {name, email, password, phone, address} = req.body;
@@ -75,4 +76,60 @@ registerController = async (req, res) => {
     }
 }
 
-module.exports = {registerController};
+//LOGIN CONTROLLER
+loginController = async (req, res) => {
+    try {
+        //VALIDATIONS
+        const {email, password} = req.body;
+
+        if(!email || !password){
+            return res.status(404).send({
+                success: false,
+                message: "Invalid Credentials",
+            });
+        }
+
+        const user = await userModels.findOne({email});
+
+        if(!user){
+            return res.status(404).send({
+                success: false,
+                message: "Email is not registered",
+            });
+        }
+
+        const match = await comparePassword(password, user.password);
+
+        if(!match){
+            return res.status(500).send({
+                success: false,
+                message: "Invalid Credentials",
+            });
+        }
+
+        //TOKEN
+        const token = await jsonWebToken.sign({_id:user._id}, process.env.JWT_SECRET, {expiresIn: '7d'});
+        
+        res.status(200).send({
+            success: true,
+            message: "User Login Successfull!",
+            token,
+            user: {
+                name: user.name,
+                email: user.email,
+                phone: user.phone,
+                address: user.address,
+            },
+        })
+
+    } catch (error) {
+        console.log(error);
+        res.status(500).send({
+            success: false,
+            message: "Error in login user",
+            error
+        });
+    }
+}
+
+module.exports = {registerController, loginController};
