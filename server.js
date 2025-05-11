@@ -1,12 +1,21 @@
 const express = require("express");
 const colors = require("colors");
 const dotenv = require("dotenv");
+const connectDb = require("./config/db");
+const morgan = require("morgan");
 
 //CONFIGURE ENV
 dotenv.config();
 
+//DATABASE CONFIG
+connectDb();
+
 //REST OBJECT
 const app = express();
+
+//MIDDLEWARES
+app.use(express.json());
+app.use(morgan('dev'));
 
 //REST API
 app.get('/', (req, res) =>{
