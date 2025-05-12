@@ -119,6 +119,7 @@ loginController = async (req, res) => {
                 email: user.email,
                 phone: user.phone,
                 address: user.address,
+                role: user.role
             },
         })
 
@@ -132,4 +133,12 @@ loginController = async (req, res) => {
     }
 }
 
-module.exports = {registerController, loginController};
+//TEST CONTROLLER
+testController = async (req, res) => {
+    return res.status(200).send({
+        success: true,
+        message: "Protected Route"
+    })
+}
+
+module.exports = {registerController, loginController, testController};
