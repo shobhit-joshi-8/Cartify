@@ -5,7 +5,7 @@ const jsonWebToken = require("jsonwebtoken");
 //REGISTER CONTROLLER
 registerController = async (req, res) => {
     try {
-        const {name, email, password, phone, address} = req.body;
+        const {name, email, password, phone, address, answer} = req.body;
 
         //VALIDATIONS
         if(!name){
@@ -43,12 +43,19 @@ registerController = async (req, res) => {
             });
         }
 
+        if(!answer){
+            return res.status(500).send({
+                success: false,
+                message: "Answer is required",
+            });
+        }
+
         //CHECK USER
         const existingUser = await userModels.findOne({email})
         
         //EXISTING USER
         if(existingUser){
-            return res.status(500).send({
+            return res.status(200).send({
                 success: false,
                 message: "User Already Exist"
             })
@@ -58,7 +65,7 @@ registerController = async (req, res) => {
         const hashedPassword = await hashPassword(password);
 
         //SAVE
-        const user = await new userModels({name, email, password: hashedPassword, phone, address}).save();
+        const user = await new userModels({name, email, password: hashedPassword, phone, address, answer}).save();
 
         res.status(201).send({
             success: true,
@@ -83,7 +90,7 @@ loginController = async (req, res) => {
         const {email, password} = req.body;
 
         if(!email || !password){
-            return res.status(404).send({
+            return res.status(200).send({
                 success: false,
                 message: "Invalid Credentials",
             });
@@ -101,7 +108,7 @@ loginController = async (req, res) => {
         const match = await comparePassword(password, user.password);
 
         if(!match){
-            return res.status(500).send({
+            return res.status(200).send({
                 success: false,
                 message: "Invalid Credentials",
             });
@@ -115,6 +122,7 @@ loginController = async (req, res) => {
             message: "User Login Successfull!",
             token,
             user: {
+                id: user._id,
                 name: user.name,
                 email: user.email,
                 phone: user.phone,
@@ -133,6 +141,60 @@ loginController = async (req, res) => {
     }
 }
 
+// FORGOT PASSWORD CONTROLLER
+forgotPasswordController = async (req, res) => {
+    try {
+        const {email, answer, newPassword} = req.body;
+
+        if(!email){
+            return res.status(400).send({
+                success: false,
+                message: "Email is required"
+            })
+        }
+
+        if(!answer){
+            return res.status(400).send({
+                success: false,
+                message: "Answer is required"
+            })
+        }
+
+        if(!newPassword){
+            return res.status(400).send({
+                success: false,
+                message: "New Password is required"
+            })
+        }
+
+        //CHECK
+        const user = await userModels.findOne({email, answer});
+
+        //VALIDATION
+        if(!user){
+            return res.status(200).send({
+                success: false,
+                message: "Wrong Email or Answer"
+            })
+        }
+
+        const hashed = await hashPassword(newPassword);
+
+        await userModels.findByIdAndUpdate(user._id, {password: hashed});
+
+        res.status(200).send({
+            success: true,
+            message: "Password Reset Successfully!"
+        })
+    } catch (error) {
+        console.log(error);
+        res.status(500).send({
+            success: false,
+            message: "Error in gforgot password API"
+        })
+    }
+}
+
 //TEST CONTROLLER
 testController = async (req, res) => {
     return res.status(200).send({
@@ -141,4 +203,4 @@ testController = async (req, res) => {
     })
 }
 
-module.exports = {registerController, loginController, testController};
+module.exports = {registerController, loginController, testController, forgotPasswordController};
